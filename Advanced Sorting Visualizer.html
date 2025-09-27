@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Advanced Sorting Visualizer</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  /* --- NEW: Professional Background Gradient --- */
+  background: linear-gradient(120deg, #a1c4fd 0%, #c2e9fb 100%);
+  margin: 0; padding: 20px;
+  display: flex; flex-direction: column;
+  align-items: center; min-height: 100vh;
+  color: #333;
+  transition: background 0.3s, color 0.3s;
+}
+
+h1 {
+    font-size: 2.8em;
+    font-weight: 700;
+    color: #1a2c4e;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+    letter-spacing: 1px;
+    margin-bottom: 25px;
+}
+
+/* --- NEW: Glassmorphism Style for Panels --- */
+.panel {
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+#controls {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    padding: 20px;
+    margin-bottom: 20px;
+    align-items: center;
+    width: 90%;
+    max-width: 1000px;
+}
+.control-group { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content:center; }
+
+button {
+    padding: 10px 18px;
+    border-radius: 8px;
+    background: linear-gradient(45deg, #007991, #78ffd6);
+    color: white;
+    border: none;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    font-size: 14px;
+}
+button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+/* --- NEW: Redesigned Dropdown (Select) Styling --- */
+.select-wrapper {
+    position: relative;
+    display: inline-block;
+}
+select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    padding: 10px 36px 10px 18px; /* Extra padding for the arrow */
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    background-color: #f9f9f9;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 14px;
+    font-weight: 500;
+    width: 160px;
+}
+.select-wrapper::after {
+    content: '?';
+    font-size: 14px;
+    color: #007991;
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+}
+select:hover {
+    border-color: #007991;
+    box-shadow: 0 0 5px rgba(0, 121, 145, 0.2);
+}
+input {
+    padding: 10px 18px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    background-color: #f9f9f9;
+    transition: all 0.3s ease;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+#bars { display: flex; align-items: flex-end; height: 350px; width: 90%; max-width: 1000px; background: rgba(255,255,255,0.7); border: 1px solid #eee; border-radius: 12px; padding: 10px; justify-content: center; position: relative; }
+.bar { margin: 0 2px; background: teal; border-radius: 4px 4px 0 0; position: relative; text-align: center; color: #fff; font-size: 12px; transition: height 0.3s, background-color 0.3s, transform 0.3s; }
+canvas { width: 100% !important; height: 100% !important; }
+
+/* --- REVISED: Container for Side-by-Side Panels --- */
+.info-container {
+    display: flex;
+    gap: 20px;
+    width: 90%;
+    max-width: 1000px;
+    align-items: stretch;
+    margin: 20px 0;
+    height: 350px;
+}
+
+/* --- REVISED: Log is now on the side --- */
+#log {
+    flex: 2; /* Takes up more space */
+    font-size: 13px;
+    line-height: 1.6em;
+    padding: 15px;
+    overflow-y: auto;
+}
+#algo-info-panel {
+    flex: 3;
+    padding: 20px;
+}
+#algo-info-panel h3 { margin-top: 0; color: teal; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+#algo-info-panel p { font-size: 15px; line-height: 1.6; }
+#algo-info-panel table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; }
+#algo-info-panel th, #algo-info-panel td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
+#algo-info-panel th { background-color: rgba(247,249,250,0.5); }
+
+/* --- REVISED: Stats is now the bottom summary panel --- */
+#stats {
+    width: 90%;
+    max-width: 1000px;
+    display: flex;
+    gap: 20px;
+    font-size: 16px;
+    font-weight: bold;
+    justify-content: space-around;
+    padding: 20px;
+    flex-wrap: wrap; /* Allows summary to wrap on smaller screens */
+}
+.summary-line { width: 100%; text-align: center; margin-top: 10px; font-size: 1.1em; }
+.summary-line.success { color: #2e7d32; }
+
+#algoStep { margin-top: 15px; font-size:16px; font-weight:bold; color:#111; text-align:center; height: 1.2em; }
+.log-entry { background: rgba(255,255,255,0.5); border-radius: 6px; padding: 6px 10px; margin-bottom: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+.log-entry:nth-child(odd) { background: rgba(236,240,241,0.5); }
+.log-icon { margin-right: 8px; font-weight: bold; }
+</style>
+</head>
+<body>
+<h1>Advanced Sorting Visualizer</h1>
+
+<div id="controls" class="panel">
+  <div class="control-group">
+    <div class="select-wrapper">
+      <select id="algorithm" onchange="updateAlgoInfo()">
+        <option value="bubble">Bubble Sort</option>
+        <option value="selection">Selection Sort</option>
+        <option value="insertion">Insertion Sort</option>
+        <option value="quick">Quick Sort</option>
+        <option value="merge">Merge Sort</option>
+        <option value="heap">Heap Sort</option>
+        <option value="radix">Radix Sort</option>
+      </select>
+    </div>
+    <div class="select-wrapper">
+      <select id="graphType" onchange="drawGraph()">
+        <option value="bar">Bar Graph</option>
+        <option value="line">Line Graph</option>
+        <option value="scatter">Scatter Plot</option>
+        <option value="bubble">Bubble Chart</option>
+        <option value="pie">Pie Chart</option>
+      </select>
+    </div>
+    <input id="inputNumbers" type="text" placeholder="Enter comma-separated numbers" size="25">
+    <button onclick="takeInput()">Submit</button>
+    <button id="modeToggle" onclick="toggleMode()">Dark Mode</button>
+  </div>
+  <div class="control-group">
+    <label>Generate Data:</label>
+    <button onclick="generateData('random')">Random</button>
+    <button onclick="generateData('reversed')">Reversed</button>
+    <button onclick="generateData('nearlySorted')">Nearly Sorted</button>
+    <button onclick="generateData('fewUnique')">Few Unique</button>
+  </div>
+  <div class="control-group">
+    <button onclick="startSorting()">?? Start</button>
+    <button onclick="pauseSorting()">?? Pause</button>
+    <button onclick="resumeSorting()">Resume</button>
+    <button onclick="resetBars()">?? Reset</button>
+    <div class="select-wrapper">
+        <select id="speedControl">
+            <option value="500">0.5x</option>
+            <option value="250" selected>1x</option>
+            <option value="100">2x</option>
+            <option value="50">5x</option>
+            <option value="10">10x</option>
+        </select>
+    </div>
+  </div>
+</div>
+
+<div id="bars"></div>
+<canvas id="chartCanvas" style="display:none; width:90%; max-height:350px;"></canvas>
+
+<div class="info-container">
+    <div id="log" class="panel"></div>
+    <div id="algo-info-panel" class="panel"></div>
+</div>
+
+<div id="algoStep"></div>
+
+<div id="stats" class="panel">
+  <div id="steps">Steps: 0</div>
+  <div id="comparisons">Comparisons: 0</div>
+  <div id="swaps">Swaps: 0</div>
+</div>
+
+<script>
+const algoDetails = {
+    bubble: { name: "Bubble Sort", description: "Compares adjacent elements and swaps them if they are in the wrong order. This simple process is repeated, bubbling the largest elements to the end of the list with each pass.", time: "<i>O</i>(n), <i>O</i>(n²), <i>O</i>(n²)", space: "<i>O</i>(1)" },
+    selection: { name: "Selection Sort", description: "Repeatedly finds the minimum element from the unsorted part of the list and puts it at the beginning. It maintains two subarrays: the sorted and the unsorted part.", time: "<i>O</i>(n²), <i>O</i>(n²), <i>O</i>(n²)", space: "<i>O</i>(1)" },
+    insertion: { name: "Insertion Sort", description: "Builds the final sorted array one item at a time. It iterates through the input elements and inserts each into its correct position in the sorted part of the array.", time: "<i>O</i>(n), <i>O</i>(n²), <i>O</i>(n²)", space: "<i>O</i>(1)" },
+    quick: { name: "Quick Sort", description: "A divide-and-conquer algorithm. It picks a 'pivot' element and partitions the other elements into two sub-arrays, based on whether they are less than or greater than the pivot.", time: "<i>O</i>(n log n), <i>O</i>(n log n), <i>O</i>(n²)", space: "<i>O</i>(log n)" },
+    merge: { name: "Merge Sort", description: "Also a divide-and-conquer algorithm. It divides the array into two halves, recursively sorts them, and then merges the two sorted halves back together.", time: "<i>O</i>(n log n), <i>O</i>(n log n), <i>O</i>(n log n)", space: "<i>O</i>(n)" },
+    heap: { name: "Heap Sort", description: "A comparison-based technique based on a Binary Heap. It first converts the array into a max heap, then repeatedly extracts the maximum element and places it at the end.", time: "<i>O</i>(n log n), <i>O</i>(n log n), <i>O</i>(n log n)", space: "<i>O</i>(1)" },
+    radix: { name: "Radix Sort", description: "A non-comparative algorithm that sorts integers by processing individual digits. It sorts items by grouping them by digits which share the same significant position.", time: "<i>O</i>(nk), <i>O</i>(nk), <i>O</i>(nk)", space: "<i>O</i>(n+k)" },
+};
+
+function updateAlgoInfo() {
+    const selectedAlgo = document.getElementById('algorithm').value;
+    const info = algoDetails[selectedAlgo];
+    const panel = document.getElementById('algo-info-panel');
+    const [best, avg, worst] = info.time.split(', ');
+    panel.innerHTML = `<h3>${info.name}</h3> <p>${info.description}</p> <table> <tr> <th>Complexity</th> <th>Best Case</th> <th>Average Case</th> <th>Worst Case</th> </tr> <tr> <td><strong>Time</strong></td> <td>${best}</td> <td>${avg}</td> <td>${worst}</td> </tr> <tr> <td><strong>Space</strong></td> <td colspan="3">${info.space}</td> </tr> </table>`;
+}
+
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playSound(type, value) { if (!audioCtx) return; const o = audioCtx.createOscillator(); const g = audioCtx.createGain(); let f=0; if(type==='compare'){f=440+value*2;o.type='sine';g.gain.setValueAtTime(0.1,audioCtx.currentTime);}else if(type==='swap'){f=300+value;o.type='triangle';g.gain.setValueAtTime(0.2,audioCtx.currentTime);} o.frequency.setValueAtTime(f,audioCtx.currentTime);o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+0.1); }
+
+let array = [], delay = 250, isPaused = false, currentChart = null;
+let steps = 0, comparisons = 0, swaps = 0;
+let isDark = false, isSorting = false;
+
+function updateStats() { document.getElementById("steps").innerText = `Steps: ${steps}`; document.getElementById("comparisons").innerText = `Comparisons: ${comparisons}`; document.getElementById("swaps").innerText = `Swaps: ${swaps}`; }
+
+// --- REVISED: Resets the stats panel to its original state ---
+function resetStats() {
+    steps = 0; comparisons = 0; swaps = 0;
+    const statsPanel = document.getElementById("stats");
+    statsPanel.innerHTML = `<div id="steps">Steps: 0</div> <div id="comparisons">Comparisons: 0</div> <div id="swaps">Swaps: 0</div>`;
+    updateStats();
+    document.getElementById("algoStep").innerText = "";
+    document.getElementById("log").innerHTML = "";
+}
+
+function takeInput() { if (isSorting) return; const i = document.getElementById("inputNumbers").value.trim(); if (i) { array = i.split(/[ ,]+/).map(Number).filter(n=>!isNaN(n)); resetStats(); drawGraph(); } }
+function generateData(t='random') { if(isSorting)return;const s=20;let n=Array.from({length:s},(_,i)=>(i+1)*5);switch(t){case'random':n=Array.from({length:s},()=>Math.floor(Math.random()*90)+10);break;case'reversed':n.reverse();break;case'nearlySorted':n.sort(()=>Math.random()-0.5);n.sort((a,b)=>(Math.random()>0.2?a-b:b-a));break;case'fewUnique':n=Array.from({length:s},()=>(Math.floor(Math.random()*5)+1)*20);break;}array=n;resetStats();drawGraph();}
+function resetBars() { isSorting = false; generateData('random'); }
+document.getElementById("speedControl").addEventListener("change", e => { delay = parseInt(e.target.value); });
+function toggleMode(){ isDark = !isDark; document.body.style.background = isDark ? "linear-gradient(120deg, #2b32b2, #141e30)" : "linear-gradient(120deg, #a1c4fd 0%, #c2e9fb 100%)"; document.body.style.color = isDark ? "#fff" : "#333"; document.getElementById("modeToggle").innerText = isDark ? "Light Mode" : "Dark Mode"; drawGraph(); }
+
+function drawGraph(highlight = [], special = -1) {
+    const type = document.getElementById("graphType").value;
+    const barsDiv = document.getElementById("bars");
+    const canvas = document.getElementById("chartCanvas");
+    barsDiv.innerHTML = "";
+    if (currentChart) { currentChart.destroy(); currentChart = null; }
+    const colors = array.map((_, i) => { if (highlight.includes(i)) return "orange"; if (i === special) return "red"; return isDark ? "#4682B4" : "teal"; });
+    if (type === "bar") {
+        canvas.style.display = "none"; barsDiv.style.display = "flex";
+        const maxValue = Math.max(...array, 1);
+        array.forEach((val, i) => { const bar = document.createElement("div"); bar.className = "bar"; bar.style.height = `${(val / maxValue) * 100}%`; bar.style.width = `${100 / array.length}%`; bar.style.background = colors[i]; bar.innerText = val > 20 ? val : ''; barsDiv.appendChild(bar); });
+    } else {
+        canvas.style.display = "block"; barsDiv.style.display = "none";
+        const ctx = canvas.getContext("2d");
+        let data, chartType;
+        if (type === "line") { chartType = "line"; data = array; } else if (type === "scatter") { chartType = "scatter"; data = array.map((v, i) => ({ x: i, y: v })); } else if (type === "bubble") { chartType = "bubble"; data = array.map((v, i) => ({ x: i, y: v, r: Math.max(5, v / 5) })); } else if (type === "pie") { chartType = "pie"; data = array; }
+        const chartColor = isDark ? 'rgba(255, 255, 255, 0.8)' : 'rgba(0, 0, 0, 0.8)';
+        currentChart = new Chart(ctx, { type: chartType, data: { labels: array.map((val, i) => `Idx ${i}: ${val}`), datasets: [{ label: "Values", data: data, backgroundColor: colors }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: chartColor } }, tooltip: { callbacks: { label: function(c) { let l = c.dataset.label || ''; if(l){l+=': ';} if(c.parsed.y !== null){l+=c.parsed.y;}else{l+=c.parsed;} return l; } } } }, scales: (chartType !== 'pie') ? { x: { ticks: { color: chartColor }, grid: { color: 'rgba(128,128,128,0.2)' } }, y: { ticks: { color: chartColor }, grid: { color: 'rgba(128,128,128,0.2)' } } } : {} } });
+    }
+}
+
+function logStep(text, type = "info") { const log = document.getElementById("log"); const div = document.createElement("div"); div.className = "log-entry"; let icon = "??"; if (type === "compare") icon = "??"; else if (type === "swap") icon = "??"; else if (type === "pivot") icon = "??"; else if (type === "complete") icon = "?"; div.innerHTML = `<span class="log-icon">${icon}</span> ${text}`; log.appendChild(div); log.scrollTop = log.scrollHeight; document.getElementById("algoStep").innerText = text; }
+function sleep() { return new Promise(res => { const check = () => { if (!isPaused) setTimeout(res, delay); else setTimeout(check, 100); }; check(); }); }
+async function swap(i, j) { steps++; swaps++; updateStats(); playSound('swap', array[i] + array[j]); [array[i], array[j]] = [array[j], array[i]]; logStep(`Swapping ${array[j]} (idx ${i}) & ${array[i]} (idx ${j})`, "swap"); drawGraph([i, j]); await sleep(); }
+async function bubbleSort() { let n=array.length;for(let i=0;i<n;i++){for(let j=0;j<n-i-1;j++){if(!isSorting)return;comparisons++;updateStats();playSound('compare',array[j]);drawGraph([j,j+1]);await sleep();if(array[j]>array[j+1])await swap(j,j+1);}}}
+async function selectionSort() { let n=array.length;for(let i=0;i<n;i++){let min=i;for(let j=i+1;j<n;j++){if(!isSorting)return;comparisons++;updateStats();playSound('compare',array[j]);drawGraph([i,j],min);await sleep();if(array[j]<array[min])min=j;}if(min!==i)await swap(i,min);}}
+async function insertionSort(){let n=array.length;for(let i=1;i<n;i++){let key=array[i];let j=i-1;while(j>=0&&array[j]>key){if(!isSorting)return;comparisons++;updateStats();playSound('compare',array[j]);array[j+1]=array[j];j--;steps++;swaps++;updateStats();drawGraph([j+1,j+2]);await sleep();}array[j+1]=key;}}
+async function quickSort(s=0,e=array.length-1){if(s>=e)return;let p=await partition(s,e);await Promise.all([quickSort(s,p-1),quickSort(p+1,e)]);}
+async function partition(s,e){let pV=array[e];let pI=s;for(let i=s;i<e;i++){if(!isSorting)return-1;comparisons++;updateStats();playSound('compare',array[i]);drawGraph([i,pI],e);await sleep();if(array[i]<pV){await swap(i,pI);pI++;}}await swap(pI,e);return pI;}
+async function mergeSort(s=0,e=array.length-1){if(s>=e)return;let m=Math.floor((s+e)/2);await mergeSort(s,m);await mergeSort(m+1,e);await merge(s,m,e);}
+async function merge(s,m,e){let l=array.slice(s,m+1);let r=array.slice(m+1,e+1);let i=0,j=0,k=s;while(i<l.length&&j<r.length){if(!isSorting)return;comparisons++;updateStats();logStep(`Comparing ${l[i]} & ${r[j]}`,'compare');playSound('compare',l[i]+r[j]);drawGraph([s+i,m+1+j]);await sleep();if(l[i]<=r[j]){array[k]=l[i];i++;}else{array[k]=r[j];j++;swaps++;}steps++;updateStats();logStep(`Placing ${array[k]} at index ${k}`,'swap');drawGraph([k]);await sleep();k++;}while(i<l.length){if(!isSorting)return;array[k]=l[i];steps++;updateStats();logStep(`Placing remaining ${array[k]}`,'swap');drawGraph([k]);await sleep();i++;k++;}while(j<r.length){if(!isSorting)return;array[k]=r[j];steps++;updateStats();logStep(`Placing remaining ${array[k]}`,'swap');drawGraph([k]);await sleep();j++;k++;}}
+async function heapSort(){let n=array.length;for(let i=Math.floor(n/2)-1;i>=0;i--){await heapify(n,i);}for(let i=n-1;i>0;i--){if(!isSorting)return;await swap(0,i);await heapify(i,0);}}
+async function heapify(n,i){let l=i;let L=2*i+1;let R=2*i+2;if(L<n){comparisons++;updateStats();playSound('compare',array[L]);if(array[L]>array[l])l=L;}if(R<n){comparisons++;updateStats();playSound('compare',array[R]);if(array[R]>array[l])l=R;}if(l!=i){if(!isSorting)return;await swap(i,l);drawGraph([i,l]);await heapify(n,l);}}
+async function radixSort(){const max=Math.max(...array);for(let exp=1;Math.floor(max/exp)>0;exp*=10){if(!isSorting)return;logStep(`--- Sorting by ${exp}s place ---`,'pivot');await sleep();await countingSortForRadix(exp);}}
+async function countingSortForRadix(exp){const n=array.length;const o=new Array(n).fill(0);const c=new Array(10).fill(0);for(let i=0;i<n;i++){const d=Math.floor(array[i]/exp)%10;c[d]++;drawGraph([i]);await sleep();}for(let i=1;i<10;i++){c[i]+=c[i-1];}for(let i=n-1;i>=0;i--){drawGraph([i]);const d=Math.floor(array[i]/exp)%10;const p=c[d]-1;o[p]=array[i];c[d]--;await sleep();}for(let i=0;i<n;i++){if(!isSorting)return;array[i]=o[i];steps++;swaps++;updateStats();drawGraph([i]);playSound('swap',array[i]);await sleep();}}
+
+async function startSorting() {
+    if (isSorting) return;
+    try {
+        isSorting = true;
+        resetStats();
+        const alg = document.getElementById("algorithm").value;
+        switch (alg) {
+            case "bubble": await bubbleSort(); break;
+            case "selection": await selectionSort(); break;
+            case "insertion": await insertionSort(); break;
+            case "quick": await quickSort(); break;
+            case "merge": await mergeSort(); break;
+            case "heap": await heapSort(); break;
+            case "radix": await radixSort(); break;
+        }
+        if (isSorting) {
+            drawGraph();
+            logStep("Sorting Completed!", "complete");
+            const statsPanel = document.getElementById("stats");
+            // --- REVISED: Appends final results to the stats panel ---
+            statsPanel.innerHTML += `
+                <hr style="width:100%; border-top: 1px solid #ddd; border-bottom: none; margin: 10px 0;">
+                <div class="summary-line success">? Sorting Completed!</div>
+                <div class="summary-line"><strong>Final Array:</strong> ${array.join(", ")}</div>
+            `;
+        }
+    } catch(error) {
+        console.error("Sorting Error:", error);
+    } finally {
+        isSorting = false;
+    }
+}
+function pauseSorting() { isPaused = true; }
+function resumeSorting() { isPaused = false; }
+window.onload = () => { generateData('random'); updateAlgoInfo(); };
+</script>
+</body>
+</html>
